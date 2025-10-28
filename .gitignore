@@ -68,6 +68,9 @@ celerybeat.pid
 .env
 .env.local
 .env.*.local
+.env.prod
+.env.dev
+.env.local
 !.env.example
 venv/
 env/
