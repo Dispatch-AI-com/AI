@@ -13,7 +13,7 @@ Key Features:
 
 import json
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone, timedelta
 from openai import AsyncOpenAI
 from custom_types import CustomerServiceState
@@ -44,7 +44,7 @@ async def _call_openai_api(
     prompt: str,
     conversation_context: str,
     user_input: str,
-    message_history: list = None,
+    message_history: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     client = _get_openai_client()
     user_input = user_input or ""
@@ -153,49 +153,58 @@ def _default_result(response: str, key: str, error: str) -> Dict[str, Any]:
     }
 
 
-def _validate_extracted_time(time_mongodb: str, current_time: datetime = None) -> Dict[str, Any]:
+def _validate_extracted_time(
+    time_mongodb: str, current_time: Optional[datetime] = None
+) -> Dict[str, Any]:
     """Validate that extracted time is reasonable
-    
+
     Args:
         time_mongodb: ISO format time string with Z suffix
         current_time: Current time for comparison (defaults to now)
-        
+
     Returns:
         Dict with 'valid' boolean and 'error' string if invalid
     """
     if current_time is None:
         current_time = datetime.now(timezone.utc)
-        
+
     try:
         # Parse the MongoDB time format
-        if not time_mongodb.endswith('Z'):
+        if not time_mongodb.endswith("Z"):
             return {"valid": False, "error": "Time must end with 'Z' for UTC timezone"}
-            
-        parsed_time = datetime.fromisoformat(time_mongodb.replace('Z', '+00:00'))
-        
+
+        parsed_time = datetime.fromisoformat(time_mongodb.replace("Z", "+00:00"))
+
         print(f"🔍 [TIME_VALIDATION] Parsed time: {parsed_time}")
         print(f"🔍 [TIME_VALIDATION] Current time: {current_time}")
-        
+
         # Check if time is in the future (allow 5 minutes buffer for processing)
         buffer_time = current_time - timedelta(minutes=5)
         if parsed_time <= buffer_time:
             return {"valid": False, "error": "Time must be in the future"}
-            
+
         # Check if time is not too far in future (1 year max)
         max_future = current_time + timedelta(days=365)
         if parsed_time > max_future:
-            return {"valid": False, "error": "Time is too far in the future (max 1 year)"}
-            
+            return {
+                "valid": False,
+                "error": "Time is too far in the future (max 1 year)",
+            }
+
         # Check reasonable business hours (6 AM - 10 PM UTC, roughly covers Australian business hours)
         # Note: This is simplified - in production you'd convert to local timezone
         utc_hour = parsed_time.hour
-        if not (22 <= utc_hour <= 23 or 0 <= utc_hour <= 12):  # Rough Australian business hours in UTC
-            print(f"⚠️ [TIME_VALIDATION] Time outside typical business hours (UTC hour: {utc_hour})")
+        if not (
+            22 <= utc_hour <= 23 or 0 <= utc_hour <= 12
+        ):  # Rough Australian business hours in UTC
+            print(
+                f"⚠️ [TIME_VALIDATION] Time outside typical business hours (UTC hour: {utc_hour})"
+            )
             # Don't fail validation, just warn - let business logic decide
-            
+
         print("✅ [TIME_VALIDATION] Time validation passed")
         return {"valid": True}
-        
+
     except Exception as e:
         print(f"❌ [TIME_VALIDATION] Exception during validation: {str(e)}")
         return {"valid": False, "error": f"Invalid time format: {str(e)}"}
@@ -204,13 +213,13 @@ def _validate_extracted_time(time_mongodb: str, current_time: datetime = None) -
 # NOTE: _default_street_result removed - address is now single string
 
 
-def extract_name_from_conversation(
-    state: CustomerServiceState, message_history: list = None
+async def extract_name_from_conversation(
+    state: CustomerServiceState, message_history: Optional[List[Dict[str, Any]]] = None
 ) -> Dict[str, Any]:
     try:
         context = _build_conversation_context(state)
         prompt = get_name_extraction_prompt()
-        result = _call_openai_api(
+        result = await _call_openai_api(
             prompt, context, state.get("last_user_input") or "", message_history
         )
         if result:
@@ -229,13 +238,13 @@ def extract_name_from_conversation(
         )
 
 
-def extract_phone_from_conversation(
-    state: CustomerServiceState, message_history: list = None
+async def extract_phone_from_conversation(
+    state: CustomerServiceState, message_history: Optional[List[Dict[str, Any]]] = None
 ) -> Dict[str, Any]:
     try:
         context = _build_conversation_context(state)
         prompt = get_phone_extraction_prompt()
-        result = _call_openai_api(
+        result = await _call_openai_api(
             prompt, context, state.get("last_user_input") or "", message_history
         )
         if result:
@@ -255,7 +264,7 @@ def extract_phone_from_conversation(
 
 
 async def extract_address_from_conversation(
-    state: CustomerServiceState, message_history: list = None
+    state: CustomerServiceState, message_history: Optional[List[Dict[str, Any]]] = None
 ) -> Dict[str, Any]:
     """Extract address from conversation with memory of previously collected information and parse into components"""
     try:
@@ -382,7 +391,7 @@ async def extract_address_from_conversation(
 
 
 async def extract_service_from_conversation(
-    state: CustomerServiceState, message_history: list = None
+    state: CustomerServiceState, message_history: Optional[List[Dict[str, Any]]] = None
 ) -> Dict[str, Any]:
     try:
         context = _build_conversation_context(state)
@@ -454,38 +463,36 @@ async def extract_service_from_conversation(
 
 
 async def extract_time_from_conversation(
-    state: CustomerServiceState, message_history: list = None
+    state: CustomerServiceState, message_history: Optional[List[Dict[str, Any]]] = None
 ) -> Dict[str, Any]:
     try:
         context = _build_conversation_context(state)
         prompt = get_time_extraction_prompt()
         user_input = state.get("last_user_input") or ""
-        result = await _call_openai_api(
-            prompt, context, user_input, message_history
-        )
-        
+        result = await _call_openai_api(prompt, context, user_input, message_history)
+
         print(f"🔍 [TIME_DEBUG] Starting time extraction for input: '{user_input}'")
         print(f"🔍 [TIME_DEBUG] LLM raw response: {result}")
-        
+
         if result and result.get("info_extracted"):
             extracted_info = result.get("info_extracted", {})
             time_mongodb = extracted_info.get("time_mongodb")
-            
+
             if time_mongodb:
                 # Validate the extracted time
                 current_time = datetime.now(timezone.utc)
                 validation = _validate_extracted_time(time_mongodb, current_time)
-                
+
                 print(f"🔍 [TIME_DEBUG] Time validation result: {validation}")
-                
+
                 if not validation["valid"]:
                     print(f"❌ [TIME_DEBUG] Invalid time: {validation['error']}")
                     return _default_result(
                         f"The time you provided seems incorrect: {validation['error']}. Could you please provide a valid future time?",
-                        "time", 
-                        validation["error"]
+                        "time",
+                        validation["error"],
                     )
-                    
+
                 print(f"✅ [TIME_DEBUG] Valid time extracted: {time_mongodb}")
                 return result
             else:
