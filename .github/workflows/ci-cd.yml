@@ -13,6 +13,9 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/ai
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,8 +33,11 @@ jobs:
         with:
           path: |
             ~/.cache/uv
-            .venv
-          key: uv-${{ runner.os }}-${{ hashFiles('pyproject.toml', 'uv.lock') }}
+            apps/ai/.venv
+          key: uv-${{ runner.os }}-${{ hashFiles('apps/ai/pyproject.toml', 'apps/ai/uv.lock') }}
+
+      - name: Sync deps (with dev extras)
+        run: uv sync --extra dev --frozen || uv sync --extra dev
 
       - name: Run all checks
         run: make check-all
