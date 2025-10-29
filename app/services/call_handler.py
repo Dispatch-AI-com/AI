@@ -170,30 +170,44 @@ class CustomerServiceLangGraph:
 
             if extracted_service:
                 extracted_lower = extracted_service.lower()
-                print(f"🔍 [PLACEHOLDER_REPLACEMENT] Looking for extracted service: '{extracted_service}'")
-                
+                print(
+                    f"🔍 [PLACEHOLDER_REPLACEMENT] Looking for extracted service: '{extracted_service}'"
+                )
+
                 # First try exact match
                 for service in available_services:
                     if service["name"].lower() == extracted_lower:
                         selected_service = service
-                        print(f"✅ [PLACEHOLDER_REPLACEMENT] Exact match found: {service['name']}")
+                        print(
+                            f"✅ [PLACEHOLDER_REPLACEMENT] Exact match found: {service['name']}"
+                        )
                         break
-                
+
                 # If no exact match, try partial matching
                 if not selected_service:
                     for service in available_services:
                         service_name_lower = service["name"].lower()
                         # Check if extracted service contains service name or vice versa
-                        if (extracted_lower in service_name_lower or 
-                            service_name_lower in extracted_lower or
+                        if (
+                            extracted_lower in service_name_lower
+                            or service_name_lower in extracted_lower
+                            or
                             # Also check word-level matching
-                            any(word in service_name_lower for word in extracted_lower.split())):
+                            any(
+                                word in service_name_lower
+                                for word in extracted_lower.split()
+                            )
+                        ):
                             selected_service = service
-                            print(f"✅ [PLACEHOLDER_REPLACEMENT] Partial match found: {service['name']} for '{extracted_service}'")
+                            print(
+                                f"✅ [PLACEHOLDER_REPLACEMENT] Partial match found: {service['name']} for '{extracted_service}'"
+                            )
                             break
-                
+
                 if not selected_service:
-                    print(f"⚠️ [PLACEHOLDER_REPLACEMENT] No match found for service: '{extracted_service}'")
+                    print(
+                        f"⚠️ [PLACEHOLDER_REPLACEMENT] No match found for service: '{extracted_service}'"
+                    )
 
             if selected_service:
                 # Replace 2-brace patterns
@@ -204,7 +218,7 @@ class CustomerServiceLangGraph:
                 response_text = response_text.replace(
                     "{{{{selected_service_name}}}}", selected_service["name"]
                 )
-                
+
                 price_text = (
                     f"{selected_service['price']}"
                     if selected_service.get("price")
@@ -260,13 +274,14 @@ class CustomerServiceLangGraph:
                 f"on {service_time}. Your booking is confirmed and we will send you a confirmation shortly. "
                 f"Thank you for choosing our service today. Have a great day and goodbye!"
             )
+
     def __init__(self, api_key=None):
         """Initialize customer service system"""
         if api_key:
             self.client = OpenAI(api_key=api_key)
         else:
             self.client = OpenAI(api_key=settings.openai_api_key)
-        
+
         # Initialize speech corrector
         self.speech_corrector = SimplifiedSpeechCorrector(api_key=api_key)
 
@@ -502,7 +517,7 @@ class CustomerServiceLangGraph:
             if existing_address and all(existing_components.values()):
                 state["address_complete"] = True
                 state["current_step"] = "collect_service"
-                
+
                 # Create natural transition message thanking user and introducing services
                 available_services = state.get("available_services", [])
                 services_list = ""
@@ -513,17 +528,17 @@ class CustomerServiceLangGraph:
                         else "Price on request"
                     )
                     services_list += f"{i}. {service['name']} for {price_text}. "
-                
+
                 transition_message = f"Thank you for providing your information! Now, here are our available services: {services_list.strip()}. Which service would you like to book today?"
-                
+
                 # Update the response to include the transition message
                 state["last_llm_response"] = {
                     "response": transition_message,
                     "info_extracted": {"confirmed": True},
                     "info_complete": True,
-                    "analysis": "Address confirmed, transitioning to service selection"
+                    "analysis": "Address confirmed, transitioning to service selection",
                 }
-                
+
                 print(f"✅ Address confirmed and completed: {existing_address}")
                 print("🔄 Created transition message to service selection")
                 return state
@@ -849,7 +864,7 @@ class CustomerServiceLangGraph:
                 "response": closing_message,
                 "info_extracted": {},
                 "info_complete": True,
-                "analysis": "Booking failed, time collection unsuccessful"
+                "analysis": "Booking failed, time collection unsuccessful",
             }
             print("⚠️ Partial booking completed, time collection failed")
 
@@ -1023,7 +1038,7 @@ class CustomerServiceLangGraph:
         }
 
         try:
-            with open(filename, 'w') as f:
+            with open(filename, "w") as f:
                 json.dump(save_data, f, indent=2, ensure_ascii=False)
             print(f"💾 Conversation saved to: {filename}")
             return filename
@@ -1072,7 +1087,7 @@ class CustomerServiceLangGraph:
             "service_available": True,
             "time_available": True,
         }
-        
+
         print(f"🤖 {initial_message}")
         return state
 
@@ -1094,14 +1109,13 @@ def _extract_first_json_blob(text: str) -> Optional[dict]:
     # Try to find the first {...} JSON object in the text and parse it
     try:
         import re as _re
+
         match = _re.search(r"\{[\s\S]*\}", text)
         if not match:
             return None
         return json.loads(match.group(0))
     except Exception:
         return None
-
-
 
 
 # Removed print_latest_assistant - no longer needed with simplified design
@@ -1118,13 +1132,15 @@ async def main() -> None:
 
     # Initialize CustomerServiceState for standalone testing
     state: CustomerServiceState = create_default_customer_service_state()
-    state.update({
-        "available_services": [
-            {"id": "cleaning", "name": "房屋清洁", "price": 100.0},
-            {"id": "repair", "name": "维修服务", "price": 200.0},
-            {"id": "garden", "name": "园艺服务", "price": 150.0}
-        ]
-    })
+    state.update(
+        {
+            "available_services": [
+                {"id": "cleaning", "name": "房屋清洁", "price": 100.0},
+                {"id": "repair", "name": "维修服务", "price": 200.0},
+                {"id": "garden", "name": "园艺服务", "price": 150.0},
+            ]
+        }
+    )
 
     print("🤖 AI Customer Service Assistant Started (LangGraph + Redis Integration)")
     print("💡 Type 'quit' or 'exit' to exit conversation")
@@ -1133,7 +1149,7 @@ async def main() -> None:
     # Initial greeting
     state["last_user_input"] = ""  # Trigger initial greeting
     state = await cs_agent.process_customer_workflow(state, call_sid=None)
-    
+
     if state.get("last_llm_response"):
         print(f"🤖 AI: {state['last_llm_response']['response']}")
 
@@ -1142,7 +1158,7 @@ async def main() -> None:
         try:
             # Get user input
             user_input = input("\n👤 You: ").strip()
-            
+
             # Check for exit commands
             if user_input.lower() in ["quit", "exit"]:
                 print("👋 Thank you for using AI customer service assistant, goodbye!")
@@ -1154,7 +1170,7 @@ async def main() -> None:
             # Set user input and process
             state["last_user_input"] = user_input
             state = await cs_agent.process_customer_workflow(state, call_sid=None)
-            
+
             # Display AI response
             if state.get("last_llm_response"):
                 ai_response = state["last_llm_response"]["response"]
@@ -1181,6 +1197,5 @@ async def main() -> None:
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())
-
-

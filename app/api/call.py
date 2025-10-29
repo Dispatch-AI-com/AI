@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Any, Dict
 from pydantic import BaseModel, Field, ValidationError
 from models.call import Message, CallSkeleton
 from services.redis_service import get_call_skeleton
@@ -133,7 +134,7 @@ async def ai_conversation(data: ConversationInput):
         if updated_state["last_llm_response"]
         else "Sorry, system is busy, please try again later."
     )
-    
+
     # Apply service placeholder replacement to ensure voice responses have correct service names
     print(f"🔍 [API_ENDPOINT] Pre-replacement response: '{ai_message}'")
     ai_message = cs_agent._replace_service_placeholders(ai_message, updated_state)
@@ -148,7 +149,7 @@ async def ai_conversation(data: ConversationInput):
     should_hangup = updated_state.get("conversation_complete", False)
 
     # 7. Return AI response with hangup signal if conversation is complete
-    response_data = {"aiResponse": ai_response}
+    response_data: Dict[str, Any] = {"aiResponse": ai_response}
 
     if should_hangup:
         response_data["shouldHangup"] = True

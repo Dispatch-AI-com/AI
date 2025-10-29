@@ -5,14 +5,13 @@ from config import settings
 
 
 @lru_cache
-def get_redis() -> Redis:
+def get_redis() -> Redis[str]:
     if settings.redis_url:
         return Redis.from_url(
             settings.redis_url,
             decode_responses=True,
-            socket_timeout=settings.redis_socket_timeout,
-            health_check_interval=30,
-            retry_on_error=[ConnectionError],
+            socket_timeout=float(settings.redis_socket_timeout),
+            health_check_interval=30.0,
         )
 
     return Redis(
@@ -20,7 +19,6 @@ def get_redis() -> Redis:
         port=settings.redis_port,
         db=settings.redis_db,
         decode_responses=True,
-        socket_timeout=settings.redis_socket_timeout,
-        health_check_interval=30,
-        retry_on_error=[ConnectionError],
+        socket_timeout=float(settings.redis_socket_timeout),
+        health_check_interval=30.0,
     )

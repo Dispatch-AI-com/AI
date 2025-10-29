@@ -368,22 +368,22 @@ def get_time_extraction_prompt():
     # Get current time for context
     current_time = datetime.now(timezone.utc)
     current_str = current_time.strftime("%A, %B %d, %Y at %I:%M %p UTC")
-    
+
     # Generate dynamic examples based on current time
     tomorrow = current_time + timedelta(days=1)
-    
+
     # Find next Monday
     days_until_monday = (7 - current_time.weekday()) % 7
     if days_until_monday == 0:  # If today is Monday, get next Monday
         days_until_monday = 7
     next_monday = current_time + timedelta(days=days_until_monday)
-    
-    # Find next Friday  
+
+    # Find next Friday
     days_until_friday = (4 - current_time.weekday()) % 7
     if days_until_friday == 0:  # If today is Friday, get next Friday
         days_until_friday = 7
     next_friday = current_time + timedelta(days=days_until_friday)
-    
+
     # Create dynamic examples
     example1 = f'"Monday 2pm" → "{next_monday.replace(hour=14, minute=0, second=0, microsecond=0).isoformat()}Z"'
     example2 = f'"tomorrow morning" → "{tomorrow.replace(hour=9, minute=0, second=0, microsecond=0).isoformat()}Z"'
