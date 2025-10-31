@@ -13,17 +13,17 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/ai
     steps:
-      - name: Checkout
+      - name: Checkout (with submodules)
         uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'  # 可改成 3.12
+          python-version: '3.11'   # 或 3.12
 
       - name: Install uv
         run: pipx install uv
@@ -35,9 +35,13 @@ jobs:
             ~/.cache/uv
             apps/ai/.venv
           key: uv-${{ runner.os }}-${{ hashFiles('apps/ai/pyproject.toml', 'apps/ai/uv.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-
 
       - name: Sync deps (with dev extras)
+        working-directory: apps/ai
         run: uv sync --extra dev --frozen || uv sync --extra dev
 
       - name: Run all checks
-        run: make check-all
+        working-directory: apps/ai
+        run: PYTHONPATH=. make check-all
