@@ -16,6 +16,7 @@ import os
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone, timedelta
 from openai import AsyncOpenAI
+from openai.types.chat import ChatCompletionMessageParam
 from custom_types import CustomerServiceState
 
 from utils.prompts.customer_info_prompts import (
@@ -44,13 +45,15 @@ async def _call_openai_api(
     prompt: str,
     conversation_context: str,
     user_input: str,
-    message_history: Optional[List[Dict[str, Any]]] = None,
+    message_history: Optional[List[ChatCompletionMessageParam]] = None,
 ) -> Dict[str, Any]:
     client = _get_openai_client()
     user_input = user_input or ""
 
     # Build messages array
-    messages = [{"role": "system", "content": prompt}]
+    messages: List[ChatCompletionMessageParam] = [
+        {"role": "system", "content": prompt}
+    ]
 
     # Add message history if provided (last 4 messages)
     if message_history:

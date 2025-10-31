@@ -66,10 +66,7 @@ class SendICSArgs(BaseMailArgs, EventInfo):
 
 
 def _to_pendulum_with_tz(dt: datetime, tz_name: str) -> pendulum.DateTime:
-    if dt.tzinfo is None:
-        return pendulum.parse(dt.isoformat(), tz=tz_name)
-    else:
-        return pendulum.instance(dt).in_tz(tz_name)
+    return pendulum.instance(dt, tz=tz_name)
 
 
 @router.post(
