@@ -14,10 +14,9 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout (with submodules)
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: true
           fetch-depth: 0
 
       - name: Setup Python
@@ -33,15 +32,13 @@ jobs:
         with:
           path: |
             ~/.cache/uv
-            apps/ai/.venv
-          key: uv-${{ runner.os }}-${{ hashFiles('apps/ai/pyproject.toml', 'apps/ai/uv.lock') }}
+            ./.venv
+          key: uv-${{ runner.os }}-${{ hashFiles('pyproject.toml', 'uv.lock') }}
           restore-keys: |
             uv-${{ runner.os }}-
 
       - name: Sync deps (with dev extras)
-        working-directory: apps/ai
         run: uv sync --extra dev --frozen || uv sync --extra dev
 
       - name: Run all checks
-        working-directory: apps/ai
         run: PYTHONPATH=. make check-all
