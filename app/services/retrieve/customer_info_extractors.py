@@ -67,7 +67,9 @@ async def _call_openai_api(
     print("  • Model: gpt-4o-mini")
     print(f"  • Messages count: {len(messages)}")
     print(f"  • User input: '{user_input}'")
-    print(f"  • System prompt length: {len(messages[0]['content'])} chars")
+    system_content = messages[0].get("content") if isinstance(messages[0], dict) else ""
+    system_content_str = system_content if isinstance(system_content, str) else ""
+    print(f"  • System prompt length: {len(system_content_str)} chars")
 
     try:
         response = await client.chat.completions.create(
