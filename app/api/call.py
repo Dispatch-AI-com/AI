@@ -2,8 +2,14 @@ from fastapi import APIRouter, HTTPException
 from typing import Any, Dict
 from pydantic import BaseModel, Field, ValidationError
 from models.call import Message, CallSkeleton
-from services.redis_service import get_call_skeleton
+from services.redis_service import (
+    get_call_skeleton,
+    update_intent_classification,
+    get_intent_classification,
+)
 from services.call_handler import CustomerServiceLangGraph
+from services.simple_chatbot import simple_chatbot
+from intent_classification.services.classifier import intent_classifier
 from custom_types import CustomerServiceState
 from datetime import datetime, timezone
 
@@ -32,53 +38,31 @@ cs_agent = CustomerServiceLangGraph()
 
 @router.post("/conversation")
 async def ai_conversation(data: ConversationInput):
-    """AI conversation dispatch endpoint - Updated for 8-step workflow
+    """AI conversation endpoint with intent classification
 
-    Pure API endpoint responsible for:
-    1. Receiving frontend requests
-    2. Getting and converting CallSkeleton data
-    3. Calling unified workflow processing
-    4. Returning AI response
-
-    All business logic is delegated to call_handler module.
+    Flow:
+    1. Get CallSkeleton data from Redis
+    2. Check if intent has been classified
+    3. If not classified and sufficient messages (>=3), perform classification
+    4. Based on intent:
+       - SCAM: Return polite goodbye + hangup
+       - NON-SCAM: Use simple chatbot for conversation
+    5. Save intent classification to Redis (calllog)
     """
     # 1. Get CallSkeleton data
     try:
         callskeleton_dict = get_call_skeleton(data.callSid)
         callskeleton = CallSkeleton.model_validate(callskeleton_dict)
     except ValueError:
-        # Redis中没找到CallSkeleton - 业务逻辑错误，不是资源不存在
         raise HTTPException(status_code=422, detail="CallSkeleton not found")
     except ValidationError as e:
-        # 数据格式错误
         raise HTTPException(
             status_code=400, detail=f"Invalid CallSkeleton data format: {str(e)}"
         )
     except Exception as e:
-        # 其他服务器错误
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-    # 2. Construct AI workflow state - 5-step workflow
-    user_info = callskeleton.user.userInfo if callskeleton.user.userInfo else None
-
-    # Extract service information from CallSkeleton
-    current_service = callskeleton.user.service
-    available_services = [
-        {
-            "id": svc.id,
-            "name": svc.name,
-            "price": svc.price,
-            "description": svc.description,
-        }
-        for svc in callskeleton.services
-    ]
-
-    print(f"🔍 Available services: {len(available_services)} services")
-    print(
-        f"🔍 Current selected service: {current_service.name if current_service else 'None'}"
-    )
-
-    # Convert message history to the format expected by extractors
+    # 2. Convert message history
     message_history = []
     if callskeleton.history:
         for msg in callskeleton.history[-8:]:  # Last 8 messages for context
@@ -89,70 +73,93 @@ async def ai_conversation(data: ConversationInput):
                 }
             )
 
-    state: CustomerServiceState = {
-        "name": user_info.name if user_info else None,
-        "phone": user_info.phone if user_info else None,
-        "address": user_info.address if user_info else None,
-        "service": current_service.name if current_service else None,
-        "service_id": current_service.id if current_service else None,
-        "service_price": current_service.price if current_service else None,
-        "service_description": current_service.description if current_service else None,
-        "available_services": available_services,
-        "service_time": callskeleton.user.serviceBookedTime,
-        "current_step": "collect_name",
-        "name_attempts": 0,
-        "phone_attempts": 0,
-        "address_attempts": 0,
-        "service_attempts": 0,
-        "time_attempts": 0,
-        "max_attempts": 3,
-        "service_max_attempts": 3,
-        "last_user_input": data.customerMessage.message,
-        "last_llm_response": None,
-        "name_complete": bool(user_info.name if user_info else None),
-        "phone_complete": bool(user_info.phone if user_info else None),
-        "address_complete": bool(user_info.address if user_info else None),
-        "service_complete": bool(callskeleton.user.service),
-        "time_complete": bool(callskeleton.user.serviceBookedTime),
-        "conversation_complete": callskeleton.servicebooked,
-        "service_available": True,
-        "time_available": True,
-        "message_history": message_history,  # Add message history to state
-    }
+    print(f"🔍 [CONVERSATION] CallSid: {data.callSid}")
+    print(f"🔍 [CONVERSATION] Message history length: {len(callskeleton.history)}")
+    print(f"🔍 [CONVERSATION] Intent classified: {callskeleton.intentClassified}")
 
-    # 3. Set current user input
-    state["last_user_input"] = data.customerMessage.message
-
-    # 4. Call unified workflow processing - all business logic delegated to call_handler
-    updated_state = await cs_agent.process_customer_workflow(
-        state, call_sid=data.callSid
+    # 3. Check if intent classification is needed
+    intent_result = None
+    should_classify = (
+        not callskeleton.intentClassified
+        and len(callskeleton.history) >= 3  # Need at least 3 messages for context
     )
 
-    # 5. Generate AI response and apply placeholder replacement
-    ai_message = (
-        updated_state["last_llm_response"]["response"]
-        if updated_state["last_llm_response"]
-        else "Sorry, system is busy, please try again later."
-    )
+    if should_classify:
+        print("🎯 [INTENT] Performing intent classification...")
+        try:
+            intent_result = await intent_classifier.classify_intent(
+                current_message=data.customerMessage.message,
+                message_history=message_history,
+                call_sid=data.callSid
+            )
 
-    # Apply service placeholder replacement to ensure voice responses have correct service names
-    print(f"🔍 [API_ENDPOINT] Pre-replacement response: '{ai_message}'")
-    ai_message = cs_agent._replace_service_placeholders(ai_message, updated_state)
-    print(f"🔍 [API_ENDPOINT] Post-replacement response: '{ai_message}'")
+            # Save intent classification to Redis
+            update_intent_classification(
+                call_sid=data.callSid,
+                intent=intent_result["intent"],
+                confidence=intent_result["confidence"],
+                reasoning=intent_result["reasoning"],
+                timestamp=datetime.now(timezone.utc).isoformat()
+            )
+
+            print(f"✅ [INTENT] Classified as: {intent_result['intent']}")
+            print(f"   Confidence: {intent_result['confidence']:.2f}")
+            print(f"   Reasoning: {intent_result['reasoning']}")
+
+        except Exception as e:
+            print(f"❌ [INTENT] Classification failed: {str(e)}")
+            # Continue with conversation on classification failure
+            intent_result = None
+
+    # 4. Determine current intent (from new classification or existing)
+    current_intent = None
+    if intent_result:
+        current_intent = intent_result["intent"]
+    elif callskeleton.intentClassified:
+        current_intent = callskeleton.intent
+
+    print(f"🔍 [CONVERSATION] Current intent: {current_intent}")
+
+    # 5. Generate response based on intent
+    should_hangup = False
+    ai_message = ""
+
+    if current_intent == "scam":
+        # SCAM detected - polite but firm goodbye
+        print("🚫 [SCAM] Scam detected, ending call...")
+        ai_message = (
+            "Thank you for calling. I'm sorry, but I'm unable to assist with this matter. "
+            "If you have a legitimate inquiry, please contact us through our official channels. "
+            "Have a good day. Goodbye."
+        )
+        should_hangup = True
+
+    else:
+        # NON-SCAM or not yet classified - use simple chatbot
+        print(f"💬 [CHATBOT] Generating conversational response (intent: {current_intent})...")
+        try:
+            ai_message = await simple_chatbot.generate_response(
+                current_message=data.customerMessage.message,
+                message_history=message_history,
+                intent_type=current_intent,
+                company_name=callskeleton.company.name if callskeleton.company else None
+            )
+        except Exception as e:
+            print(f"❌ [CHATBOT] Response generation failed: {str(e)}")
+            ai_message = "I appreciate you reaching out. How can I assist you today?"
+
+    # 6. Build response
     ai_response = {
         "speaker": "AI",
         "message": ai_message,
         "startedAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
 
-    # 6. Check if conversation is complete to signal hangup
-    should_hangup = updated_state.get("conversation_complete", False)
-
-    # 7. Return AI response with hangup signal if conversation is complete
     response_data: Dict[str, Any] = {"aiResponse": ai_response}
 
     if should_hangup:
         response_data["shouldHangup"] = True
+        print("📞 [HANGUP] Call will be terminated")
 
     return response_data
 

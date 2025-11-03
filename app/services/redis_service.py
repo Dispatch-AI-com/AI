@@ -317,3 +317,77 @@ def update_booking_status(
     except Exception as e:
         print(f"❌ Redis booking status update failed: {str(e)}")
         return False
+
+
+def update_intent_classification(
+    call_sid: str,
+    intent: str,
+    confidence: float,
+    reasoning: str,
+    timestamp: Optional[str] = None,
+) -> bool:
+    """Update intent classification results
+
+    Args:
+        call_sid: Call ID
+        intent: Classification result (scam/opportunity/other)
+        confidence: Classification confidence score (0.0-1.0)
+        reasoning: Reasoning for classification
+        timestamp: Update timestamp
+
+    Returns:
+        bool: Whether update was successful
+    """
+    try:
+        # Get current CallSkeleton data
+        skeleton_dict = get_call_skeleton_dict(call_sid)
+
+        # Update intent classification fields
+        skeleton_dict["intent"] = intent
+        skeleton_dict["intentClassified"] = True
+        skeleton_dict["intentConfidence"] = confidence
+        skeleton_dict["intentReasoning"] = reasoning
+
+        # Add timestamp record
+        if timestamp:
+            skeleton_dict["intentTimestamp"] = timestamp
+
+        # Save back to Redis
+        r.set(f"call:{call_sid}", json.dumps(skeleton_dict))
+
+        print(
+            f"✅ Redis intent classification update successful: intent={intent}, confidence={confidence:.2f}"
+        )
+        print(f"   Reasoning: {reasoning}")
+        return True
+
+    except Exception as e:
+        print(f"❌ Redis intent classification update failed: {str(e)}")
+        return False
+
+
+def get_intent_classification(call_sid: str) -> Optional[Dict[str, Any]]:
+    """Get intent classification results for a call
+
+    Args:
+        call_sid: Call ID
+
+    Returns:
+        Dict containing intent classification info, or None if not classified
+    """
+    try:
+        skeleton_dict = get_call_skeleton_dict(call_sid)
+
+        if not skeleton_dict.get("intentClassified", False):
+            return None
+
+        return {
+            "intent": skeleton_dict.get("intent"),
+            "intentClassified": skeleton_dict.get("intentClassified", False),
+            "intentConfidence": skeleton_dict.get("intentConfidence"),
+            "intentReasoning": skeleton_dict.get("intentReasoning"),
+        }
+
+    except Exception as e:
+        print(f"❌ Redis get intent classification failed: {str(e)}")
+        return None

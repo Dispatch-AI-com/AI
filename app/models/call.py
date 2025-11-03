@@ -79,3 +79,9 @@ class CallSkeleton(BaseModel):
     servicebooked: bool
     confirmEmailsent: bool
     createdAt: Optional[str] = None
+
+    # Intent classification fields
+    intent: Optional[str] = None  # Classification result: scam/opportunity/other
+    intentClassified: bool = False  # Whether intent has been classified
+    intentConfidence: Optional[float] = None  # Classification confidence score
+    intentReasoning: Optional[str] = None  # Reasoning for classification
