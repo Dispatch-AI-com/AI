@@ -10,7 +10,6 @@ from fastapi_mcp.server import FastApiMCP
 app_dir = Path(__file__).parent
 sys.path.insert(0, str(app_dir))
 
-
 settings = get_settings()
 
 app = FastAPI(
