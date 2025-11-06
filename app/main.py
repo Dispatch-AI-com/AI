@@ -6,11 +6,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_mcp.server import FastApiMCP
 
-# Add the app directory to Python path for absolute imports
-app_dir = Path(__file__).parent
-sys.path.insert(0, str(app_dir))
-
-
 settings = get_settings()
 
 app = FastAPI(
