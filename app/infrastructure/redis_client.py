@@ -5,7 +5,7 @@ from config import settings
 
 
 @lru_cache
-def get_redis() -> Redis:
+def get_redis() -> Redis[str]:
     if settings.redis_url:
         return Redis.from_url(
             settings.redis_url,
