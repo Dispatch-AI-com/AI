@@ -7,7 +7,7 @@ import sys
 from typing import Optional
 
 from openai import OpenAI
-from custom_types import CustomerServiceState
+from app.custom_types import CustomerServiceState
 from .redis_service import (
     update_user_info_field,
     update_address_components,
@@ -23,7 +23,7 @@ from .retrieve.customer_info_extractors import (
     extract_time_from_conversation,
 )
 from .llm_speech_corrector import SimplifiedSpeechCorrector
-from config import settings
+from app.config import settings
 
 
 # Helper function to create default CustomerServiceState
@@ -33,6 +33,11 @@ def create_default_customer_service_state() -> CustomerServiceState:
         "name": None,
         "phone": None,
         "address": None,
+        "street_number": None,
+        "street_name": None,
+        "suburb": None,
+        "postcode": None,
+        "state": None,
         "service": None,
         "service_id": None,
         "service_price": None,
@@ -53,6 +58,11 @@ def create_default_customer_service_state() -> CustomerServiceState:
         "name_complete": False,
         "phone_complete": False,
         "address_complete": False,
+        "street_number_complete": False,
+        "street_name_complete": False,
+        "suburb_complete": False,
+        "postcode_complete": False,
+        "state_complete": False,
         "service_complete": False,
         "time_complete": False,
         "conversation_complete": False,
@@ -86,7 +96,7 @@ class CustomerServiceLangGraph:
             return response_text
 
         # Get available services
-        available_services = state.get("available_services", [])
+        available_services = state.get("available_services", []) or []
 
         print(f"🔍 [PLACEHOLDER_REPLACEMENT] Processing response: '{response_text}'")
         print(
@@ -431,7 +441,7 @@ class CustomerServiceLangGraph:
             state["max_attempts"] = settings.max_attempts
 
         # Apply speech correction for Australian address input (NSW/NSEW fix)
-        original_input = state.get("last_user_input", "")
+        original_input = state.get("last_user_input") or ""
         print(
             f"🔧 [SPEECH_DEBUG] Starting speech correction for address input: '{original_input}'"
         )
@@ -519,7 +529,7 @@ class CustomerServiceLangGraph:
                 state["current_step"] = "collect_service"
 
                 # Create natural transition message thanking user and introducing services
-                available_services = state.get("available_services", [])
+                available_services = state.get("available_services", []) or []
                 services_list = ""
                 for i, service in enumerate(available_services, 1):
                     price_text = (
@@ -691,7 +701,7 @@ class CustomerServiceLangGraph:
             cleaned_service = extracted_service.strip()
 
             # Match extracted service with available services to get full details
-            available_services = state.get("available_services", [])
+            available_services = state.get("available_services", []) or []
             matched_service = None
 
             for service in available_services:
@@ -1062,7 +1072,12 @@ class CustomerServiceLangGraph:
             "postcode": None,
             "state": None,
             "service": None,
+            "service_id": None,
+            "service_price": None,
+            "service_description": None,
+            "available_services": [],
             "service_time": None,
+            "service_time_mongodb": None,
             "current_step": "collect_name",
             "name_attempts": 0,
             "phone_attempts": 0,
@@ -1150,8 +1165,9 @@ async def main() -> None:
     state["last_user_input"] = ""  # Trigger initial greeting
     state = await cs_agent.process_customer_workflow(state, call_sid=None)
 
-    if state.get("last_llm_response"):
-        print(f"🤖 AI: {state['last_llm_response']['response']}")
+    last_response = state.get("last_llm_response")
+    if last_response:
+        print(f"🤖 AI: {last_response['response']}")
 
     # Main conversation loop
     while not state.get("conversation_complete"):
@@ -1172,8 +1188,9 @@ async def main() -> None:
             state = await cs_agent.process_customer_workflow(state, call_sid=None)
 
             # Display AI response
-            if state.get("last_llm_response"):
-                ai_response = state["last_llm_response"]["response"]
+            last_response = state.get("last_llm_response")
+            if last_response:
+                ai_response = last_response["response"]
                 print(f"🤖 AI: {ai_response}")
 
             # Check if completed

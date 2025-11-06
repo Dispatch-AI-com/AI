@@ -1,8 +1,8 @@
 import json
-from models.call import CallSkeleton
+from app.models.call import CallSkeleton
 from typing import Optional, Dict, Any, List, cast
 
-from infrastructure.redis_client import get_redis
+from app.infrastructure.redis_client import get_redis
 from openai.types.chat import ChatCompletionMessageParam
 
 r = get_redis()

@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException
 from typing import Any, Dict
 from pydantic import BaseModel, Field, ValidationError
-from models.call import Message, CallSkeleton
-from services.redis_service import get_call_skeleton
-from services.call_handler import CustomerServiceLangGraph
-from custom_types import CustomerServiceState
+from app.models.call import Message, CallSkeleton
+from app.services.redis_service import get_call_skeleton
+from app.services.call_handler import CustomerServiceLangGraph
+from app.custom_types import CustomerServiceState
 from datetime import datetime, timezone
 
 router = APIRouter(
@@ -93,12 +93,18 @@ async def ai_conversation(data: ConversationInput):
         "name": user_info.name if user_info else None,
         "phone": user_info.phone if user_info else None,
         "address": user_info.address if user_info else None,
+        "street_number": user_info.street_number if user_info else None,
+        "street_name": user_info.street_name if user_info else None,
+        "suburb": user_info.suburb if user_info else None,
+        "postcode": user_info.postcode if user_info else None,
+        "state": user_info.state if user_info else None,
         "service": current_service.name if current_service else None,
         "service_id": current_service.id if current_service else None,
         "service_price": current_service.price if current_service else None,
         "service_description": current_service.description if current_service else None,
         "available_services": available_services,
         "service_time": callskeleton.user.serviceBookedTime,
+        "service_time_mongodb": callskeleton.user.serviceBookedTime,
         "current_step": "collect_name",
         "name_attempts": 0,
         "phone_attempts": 0,
@@ -112,12 +118,16 @@ async def ai_conversation(data: ConversationInput):
         "name_complete": bool(user_info.name if user_info else None),
         "phone_complete": bool(user_info.phone if user_info else None),
         "address_complete": bool(user_info.address if user_info else None),
+        "street_number_complete": bool(user_info.street_number if user_info else None),
+        "street_name_complete": bool(user_info.street_name if user_info else None),
+        "suburb_complete": bool(user_info.suburb if user_info else None),
+        "postcode_complete": bool(user_info.postcode if user_info else None),
+        "state_complete": bool(user_info.state if user_info else None),
         "service_complete": bool(callskeleton.user.service),
         "time_complete": bool(callskeleton.user.serviceBookedTime),
         "conversation_complete": callskeleton.servicebooked,
         "service_available": True,
         "time_available": True,
-        "message_history": message_history,  # Add message history to state
     }
 
     # 3. Set current user input

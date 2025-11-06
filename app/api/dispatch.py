@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Literal, Optional, List, Dict, Any
 from uuid import uuid4
-from client.mcp_client import call_tool
+from app.client.mcp_client import call_tool
 
 router = APIRouter(prefix="/dispatch", tags=["dispatch"])
 

@@ -1,11 +1,11 @@
 # app/infrastructure/redis_client.py
 from functools import lru_cache
 from redis import Redis
-from config import settings
+from app.config import settings
 
 
 @lru_cache
-def get_redis() -> Redis[str]:
+def get_redis() -> Redis:
     if settings.redis_url:
         return Redis.from_url(
             settings.redis_url,

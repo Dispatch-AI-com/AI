@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from datetime import datetime
 import time
-from models.chat import ChatRequest, ChatResponse
-from services.llm_service import llm_service
+from app.models.chat import ChatRequest, ChatResponse
+from app.services.llm_service import llm_service
 
 router = APIRouter(prefix="/ai", tags=["chat"])
 
