@@ -1,5 +1,5 @@
 from typing import Dict, Any, List
-from services.llm_service import llm_service
+from app.services.llm_service import llm_service
 
 
 def create_summary_prompt(conversation_text: str, service_info: dict) -> str:

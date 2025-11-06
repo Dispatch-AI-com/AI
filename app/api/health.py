@@ -1,10 +1,10 @@
 from fastapi import APIRouter
-from infrastructure.redis_client import get_redis
+from app.infrastructure.redis_client import get_redis
 from fastapi import Query
 from fastapi.responses import PlainTextResponse
 from fastapi.exceptions import HTTPException
-from client.mcp_client import call_tool, list_tools
-from utils.mcp_parse import parse_tool_result, to_dict
+from app.client.mcp_client import call_tool, list_tools
+from app.utils.mcp_parse import parse_tool_result, to_dict
 
 
 router = APIRouter(prefix="/health", tags=["health"])

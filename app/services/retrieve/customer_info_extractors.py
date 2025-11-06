@@ -16,9 +16,9 @@ import os
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone, timedelta
 from openai import AsyncOpenAI
-from custom_types import CustomerServiceState
+from app.custom_types import CustomerServiceState
 
-from utils.prompts.customer_info_prompts import (
+from app.utils.prompts.customer_info_prompts import (
     get_name_extraction_prompt,
     get_phone_extraction_prompt,
     get_address_extraction_prompt,

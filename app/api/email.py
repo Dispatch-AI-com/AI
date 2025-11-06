@@ -6,8 +6,8 @@ from datetime import datetime
 from uuid import uuid4
 
 import pendulum
-from services.ses_email import send_plain_email, send_email_with_ics
-from services.ics_lib import build_ics_request, build_ics_cancel
+from app.services.ses_email import send_plain_email, send_email_with_ics
+from app.services.ics_lib import build_ics_request, build_ics_cancel
 
 router = APIRouter(
     prefix="/email",

@@ -1,17 +1,11 @@
-import sys
-from pathlib import Path
-from config import get_settings
-from api import health, chat, call, summary, email, dispatch
+from app.config import get_settings
+from app.api import health, chat, call, summary, email, dispatch
+# from app.intent_classification.api import router as intent_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_mcp.server import FastApiMCP
 
-# Add the app directory to Python path for absolute imports
-app_dir = Path(__file__).parent
-sys.path.insert(0, str(app_dir))
-
-
-settings = get_settings()
+settings = get_settings()   
 
 app = FastAPI(
     title=settings.api_title,
@@ -35,6 +29,7 @@ app.include_router(call.router, prefix=settings.api_prefix)
 app.include_router(summary.router, prefix=settings.api_prefix)
 app.include_router(email.router, prefix=settings.api_prefix)
 app.include_router(dispatch.router, prefix=settings.api_prefix)
+# app.include_router(intent_router, prefix=settings.api_prefix)
 
 
 @app.get("/")

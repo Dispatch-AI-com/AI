@@ -7,7 +7,7 @@ import sys
 from typing import Optional
 
 from openai import OpenAI
-from custom_types import CustomerServiceState
+from app.custom_types import CustomerServiceState
 from .redis_service import (
     update_user_info_field,
     update_address_components,
@@ -23,7 +23,7 @@ from .retrieve.customer_info_extractors import (
     extract_time_from_conversation,
 )
 from .llm_speech_corrector import SimplifiedSpeechCorrector
-from config import settings
+from app.config import settings
 
 
 # Helper function to create default CustomerServiceState

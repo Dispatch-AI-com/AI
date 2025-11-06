@@ -1,8 +1,8 @@
 import json
-from models.call import CallSkeleton
+from app.models.call import CallSkeleton
 from typing import Optional, Dict, Any
 
-from infrastructure.redis_client import get_redis
+from app.infrastructure.redis_client import get_redis
 
 r = get_redis()
 
