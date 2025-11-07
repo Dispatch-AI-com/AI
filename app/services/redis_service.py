@@ -1,8 +1,9 @@
 import json
-from models.call import CallSkeleton
-from typing import Optional, Dict, Any
+from app.models.call import CallSkeleton
+from typing import Optional, Dict, Any, List, cast
 
-from infrastructure.redis_client import get_redis
+from app.infrastructure.redis_client import get_redis
+from openai.types.chat import ChatCompletionMessageParam
 
 r = get_redis()
 
@@ -47,20 +48,23 @@ def get_call_skeleton_dict(call_sid: str) -> Dict[str, Any]:
     return json.loads(data)
 
 
-def get_message_history(call_sid: str) -> list:
+def get_message_history(call_sid: str) -> List[ChatCompletionMessageParam]:
     """Get message history from Redis for a specific call"""
     try:
         skeleton_dict = get_call_skeleton_dict(call_sid)
         history = skeleton_dict.get("history", [])
 
         # Convert to the format expected by extractors
-        message_history = []
+        message_history: List[ChatCompletionMessageParam] = []
         for msg in history[-8:]:  # Last 8 messages for context
             message_history.append(
-                {
-                    "role": "user" if msg.get("speaker") == "customer" else "assistant",
-                    "content": msg.get("message", ""),
-                }
+                cast(
+                    ChatCompletionMessageParam,
+                    {
+                        "role": "user" if msg.get("speaker") == "customer" else "assistant",
+                        "content": msg.get("message", ""),
+                    },
+                )
             )
 
         print(f"🔍 Redis: Retrieved {len(message_history)} messages from history")

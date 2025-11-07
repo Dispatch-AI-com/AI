@@ -13,12 +13,13 @@ Key Features:
 
 import json
 import os
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, cast
 from datetime import datetime, timezone, timedelta
 from openai import AsyncOpenAI
-from custom_types import CustomerServiceState
+from openai.types.chat import ChatCompletionMessageParam
+from app.custom_types import CustomerServiceState
 
-from utils.prompts.customer_info_prompts import (
+from app.utils.prompts.customer_info_prompts import (
     get_name_extraction_prompt,
     get_phone_extraction_prompt,
     get_address_extraction_prompt,
@@ -44,13 +45,15 @@ async def _call_openai_api(
     prompt: str,
     conversation_context: str,
     user_input: str,
-    message_history: Optional[List[Dict[str, Any]]] = None,
+    message_history: Optional[List[ChatCompletionMessageParam]] = None,
 ) -> Dict[str, Any]:
     client = _get_openai_client()
     user_input = user_input or ""
 
     # Build messages array
-    messages = [{"role": "system", "content": prompt}]
+    messages: List[ChatCompletionMessageParam] = [
+        cast(ChatCompletionMessageParam, {"role": "system", "content": prompt})
+    ]
 
     # Add message history if provided (last 4 messages)
     if message_history:
@@ -58,13 +61,13 @@ async def _call_openai_api(
             messages.append(msg)
 
     # Add current user input
-    messages.append({"role": "user", "content": f"User input: {user_input}"})
+    messages.append(cast(ChatCompletionMessageParam, {"role": "user", "content": f"User input: {user_input}"}))
 
     print("🔍 [LLM_DEBUG] Sending request to OpenAI:")
     print("  • Model: gpt-4o-mini")
     print(f"  • Messages count: {len(messages)}")
     print(f"  • User input: '{user_input}'")
-    print(f"  • System prompt length: {len(messages[0]['content'])} chars")
+    print(f"  • System prompt length: {len(prompt)} chars")
 
     try:
         response = await client.chat.completions.create(
@@ -214,7 +217,7 @@ def _validate_extracted_time(
 
 
 async def extract_name_from_conversation(
-    state: CustomerServiceState, message_history: Optional[List[Dict[str, Any]]] = None
+    state: CustomerServiceState, message_history: Optional[List[ChatCompletionMessageParam]] = None
 ) -> Dict[str, Any]:
     try:
         context = _build_conversation_context(state)
@@ -239,7 +242,7 @@ async def extract_name_from_conversation(
 
 
 async def extract_phone_from_conversation(
-    state: CustomerServiceState, message_history: Optional[List[Dict[str, Any]]] = None
+    state: CustomerServiceState, message_history: Optional[List[ChatCompletionMessageParam]] = None
 ) -> Dict[str, Any]:
     try:
         context = _build_conversation_context(state)
@@ -264,7 +267,7 @@ async def extract_phone_from_conversation(
 
 
 async def extract_address_from_conversation(
-    state: CustomerServiceState, message_history: Optional[List[Dict[str, Any]]] = None
+    state: CustomerServiceState, message_history: Optional[List[ChatCompletionMessageParam]] = None
 ) -> Dict[str, Any]:
     """Extract address from conversation with memory of previously collected information and parse into components"""
     try:
@@ -391,7 +394,7 @@ async def extract_address_from_conversation(
 
 
 async def extract_service_from_conversation(
-    state: CustomerServiceState, message_history: Optional[List[Dict[str, Any]]] = None
+    state: CustomerServiceState, message_history: Optional[List[ChatCompletionMessageParam]] = None
 ) -> Dict[str, Any]:
     try:
         context = _build_conversation_context(state)
@@ -463,7 +466,7 @@ async def extract_service_from_conversation(
 
 
 async def extract_time_from_conversation(
-    state: CustomerServiceState, message_history: Optional[List[Dict[str, Any]]] = None
+    state: CustomerServiceState, message_history: Optional[List[ChatCompletionMessageParam]] = None
 ) -> Dict[str, Any]:
     try:
         context = _build_conversation_context(state)

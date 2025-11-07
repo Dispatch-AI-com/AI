@@ -11,10 +11,8 @@ SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASS = os.getenv("SMTP_PASS")
 
 # 只开启一种 TLS：587 -> STARTTLS；465 -> SSL/TLS
-TLS_KW = dict(
-    start_tls=(SMTP_PORT == 587),
-    use_tls=(SMTP_PORT == 465),
-)
+STARTTLS_ENABLED = SMTP_PORT == 587
+USE_TLS_ENABLED = SMTP_PORT == 465
 
 
 async def send_plain_email(to: str, subject: str, body: str) -> None:
@@ -31,7 +29,8 @@ async def send_plain_email(to: str, subject: str, body: str) -> None:
         username=SMTP_USER,
         password=SMTP_PASS,
         timeout=10,
-        **TLS_KW,
+        start_tls=STARTTLS_ENABLED,
+        use_tls=USE_TLS_ENABLED,
     )
 
 
@@ -68,5 +67,6 @@ async def send_email_with_ics(
         username=SMTP_USER,
         password=SMTP_PASS,
         timeout=10,
-        **TLS_KW,
+        start_tls=STARTTLS_ENABLED,
+        use_tls=USE_TLS_ENABLED,
     )
