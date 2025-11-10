@@ -8,8 +8,8 @@ Uses OpenAI GPT models to classify user intents based on conversation context.
 from openai import AsyncOpenAI
 from typing import Optional, List, Dict, Any
 import json
-from config import get_settings
-from services.redis_service import get_message_history
+from app.config import get_settings
+from app.services.redis_service import get_message_history
 from .prompts import get_intent_classification_system_prompt
 
 settings = get_settings()

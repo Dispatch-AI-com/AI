@@ -6,7 +6,7 @@ This handler does NOT collect booking information or use the appointment workflo
 It simply engages in friendly conversation and provides helpful responses.
 """
 
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, List
 from openai import AsyncOpenAI
 from config import get_settings
 
@@ -113,23 +113,54 @@ class SimpleChatbot:
 
 Your role is to engage in natural, helpful conversation. You should:
 - Be warm, professional, and courteous
-- Provide helpful information when possible
 - Keep responses concise (2-3 sentences)
 - Be conversational and natural
-- NOT collect personal information or schedule appointments
-- NOT try to sell services or products
 
 """
 
         # Add intent-specific guidance
         if intent_type == "opportunity":
-            base_prompt += """The caller has been identified as potentially having a legitimate opportunity or professional inquiry.
-Be especially helpful and accommodating with their questions."""
+            base_prompt += """IMPORTANT: This caller has a VALUABLE OPPORTUNITY (job offer, research collaboration, academic partnership, etc.).
+
+Your approach:
+- Be enthusiastic and highly accommodating
+- Ask probing questions to understand the opportunity details
+- Try to gather: their name, organization, nature of opportunity, timeline, contact info
+- Show genuine interest and appreciation
+- Make them feel their opportunity is important and will be prioritized
+
+Example responses:
+- "That sounds like an exciting opportunity! Could you tell me more about [specific aspect]?"
+- "I'd love to learn more about this. What organization are you with?"
+- "This is definitely something our team would be interested in. Can you share your contact details so we can follow up properly?"
+"""
         elif intent_type == "other":
-            base_prompt += """The caller's intent is unclear. Be helpful but let them guide the conversation.
-Offer to assist with their questions or concerns."""
+            base_prompt += """IMPORTANT: This caller's intent is unclear or requires human handling.
+
+Your approach:
+- Keep conversation brief and focused
+- Ask 1-2 direct questions to understand their core need
+- Don't go too deep - this will be escalated to a human
+- Reassure them their matter will be handled by the appropriate person
+- Be professional but don't overpromise
+
+Example responses:
+- "I understand. To make sure you get the right help, could you briefly explain what you need assistance with?"
+- "Thank you for explaining. This sounds like something our team should handle directly."
+- "I've noted your concern. What's the best number to reach you at?"
+"""
         else:
-            base_prompt += """Engage naturally with the caller and help with their questions."""
+            # Unclassified - still gathering information
+            base_prompt += """Your approach:
+- Engage naturally to understand what the caller needs
+- Ask open-ended questions to clarify their purpose
+- Be helpful and patient
+- Listen for signals about whether this is a valuable opportunity or a general inquiry
+
+Example responses:
+- "I'm here to help! What brings you to call us today?"
+- "Could you tell me a bit more about what you're looking for?"
+"""
 
         return base_prompt
 

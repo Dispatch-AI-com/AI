@@ -32,13 +32,6 @@ class Message(BaseModel):
     startedAt: str
 
 
-class Service(BaseModel):
-    id: str
-    name: str
-    price: Optional[float] = None
-    description: Optional[str] = None
-
-
 class Address(BaseModel):
     address: str = Field(default="", description="Complete address as a single string")
 
@@ -46,14 +39,7 @@ class Address(BaseModel):
 class UserInfo(BaseModel):
     name: Optional[str] = None
     phone: Optional[str] = None
-    address: Optional[str] = (
-        None  # Complete address string (for backward compatibility)
-    )
-    street_number: Optional[str] = None  # House/unit number
-    street_name: Optional[str] = None  # Street name including type
-    suburb: Optional[str] = None  # Suburb/city name
-    postcode: Optional[str] = None  # 4-digit postal code
-    state: Optional[str] = None  # Australian state/territory abbreviation
+    address: Optional[str] = None  # Complete address string
 
 
 class Company(BaseModel):
@@ -61,27 +47,23 @@ class Company(BaseModel):
     name: str
     email: str
     userId: str
-    calendar_access_token: Optional[str] = None
 
 
 class UserState(BaseModel):
-    service: Optional[Service] = None
-    serviceBookedTime: Optional[str] = None
     userInfo: UserInfo
 
 
 class CallSkeleton(BaseModel):
     callSid: str
-    services: List[Service]
     company: Company
     user: UserState
     history: List[Message]
-    servicebooked: bool
-    confirmEmailsent: bool
     createdAt: Optional[str] = None
+
+    # Caller information
+    callerNumber: Optional[str] = None
+    callStartAt: Optional[str] = None
 
     # Intent classification fields
     intent: Optional[str] = None  # Classification result: scam/opportunity/other
     intentClassified: bool = False  # Whether intent has been classified
-    intentConfidence: Optional[float] = None  # Classification confidence score
-    intentReasoning: Optional[str] = None  # Reasoning for classification

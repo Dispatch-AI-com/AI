@@ -6,7 +6,7 @@ Pydantic models for API requests.
 
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from models.call import Message
+from app.models.call import Message
 
 
 class IntentClassificationRequest(BaseModel):

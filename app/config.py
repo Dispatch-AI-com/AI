@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     api_version: str = Field(default="1.0.0")
     api_prefix: str = Field(default="/api")
 
+    # Backend API Configuration
+    # Defaults to Docker container name, can be overridden with BACKEND_URL env var
+    backend_url: str = Field(default="http://dispatchai-api:4000/api")
+
     # Redis Configuration
     redis_host: str = Field(default="localhost")
     redis_port: int = Field(default=6379)
@@ -65,6 +69,12 @@ class Settings(BaseSettings):
 
     # Conversation History Configuration
     max_conversation_context: int = Field(default=3)
+
+    # Intent Classification Configuration
+    intent_classification_enabled: bool = Field(default=True)
+
+    # LangGraph Workflow Configuration
+    max_retries_per_step: int = Field(default=3)  # Max retries per collection step
 
     # CORS Configuration
     cors_origins: list = Field(default=["*"])

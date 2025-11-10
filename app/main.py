@@ -5,12 +5,11 @@ from pathlib import Path
 app_dir = Path(__file__).parent
 sys.path.insert(0, str(app_dir))
 
-from config import get_settings
-from api import health, chat, call, summary, email, dispatch
-from intent_classification.api import router as intent_router
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi_mcp.server import FastApiMCP
+from config import get_settings  # noqa: E402
+from api import health, chat, call, summary  # noqa: E402
+from intent_classification.api import router as intent_router  # noqa: E402
+from fastapi import FastAPI  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 
 settings = get_settings()
@@ -35,8 +34,6 @@ app.include_router(health.router, prefix=settings.api_prefix)
 app.include_router(chat.router, prefix=settings.api_prefix)
 app.include_router(call.router, prefix=settings.api_prefix)
 app.include_router(summary.router, prefix=settings.api_prefix)
-app.include_router(email.router, prefix=settings.api_prefix)
-app.include_router(dispatch.router, prefix=settings.api_prefix)
 app.include_router(intent_router, prefix=settings.api_prefix)
 
 
@@ -47,20 +44,6 @@ async def root():
         "version": settings.api_version,
         "environment": settings.environment,
     }
-
-
-mcp = FastApiMCP(
-    app,
-    name="Dispatch AI MCP",
-    include_operations=[
-        "health_ping",
-        "send_email_with_ics",
-        "send_email_with_google_calendar",
-        "send_email_with_outlook_calendar",
-    ],
-)
-
-mcp.mount_sse(app, mount_path=f"{settings.api_prefix}/mcp")
 
 if __name__ == "__main__":
     import uvicorn
