@@ -287,13 +287,19 @@ class CustomerServiceLangGraph:
 
     def __init__(self, api_key=None):
         """Initialize customer service system"""
-        if api_key:
-            self.client = OpenAI(api_key=api_key)
+        # In development, allow service to start without OpenAI API key
+        final_api_key = api_key or settings.openai_api_key
+        if not final_api_key and (settings.environment == "development" or settings.debug):
+            print("⚠️  OpenAI API key not found in call_handler. Call handling features will be disabled.")
+            self.client = None
         else:
-            self.client = OpenAI(api_key=settings.openai_api_key)
+            if api_key:
+                self.client = OpenAI(api_key=api_key)
+            else:
+                self.client = OpenAI(api_key=settings.openai_api_key)
 
         # Initialize speech corrector
-        self.speech_corrector = SimplifiedSpeechCorrector(api_key=api_key)
+        self.speech_corrector = SimplifiedSpeechCorrector(api_key=api_key or final_api_key)
 
         # Create LangGraph workflow - using simplified approach
         self.workflow = None

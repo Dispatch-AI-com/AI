@@ -8,7 +8,12 @@ settings = get_settings()
 class LLMService:
     def __init__(self):
         if settings.llm_provider == "openai":
-            self.client = AsyncOpenAI(api_key=settings.openai_api_key)
+            # In development, allow service to start without OpenAI API key
+            if not settings.openai_api_key and (settings.environment == "development" or settings.debug):
+                print("⚠️  OpenAI API key not found. LLM features will be disabled.")
+                self.client = None
+            else:
+                self.client = AsyncOpenAI(api_key=settings.openai_api_key)
         else:
             self.client = None
 
@@ -19,6 +24,9 @@ class LLMService:
             return f"Mock response to: {message}"
 
         if self.client is None:
+            # In development, return a mock response if client is not initialized
+            if settings.environment == "development" or settings.debug:
+                return f"[Mock LLM Response] This is a mock response to: {message}"
             raise Exception("LLM client not initialized")
 
         try:
